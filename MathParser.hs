@@ -26,7 +26,7 @@ parse s =
     (e, []) -> e
 
     -- a successful parse with leftover tokens fails
-    (e, extraTokens) -> error ("Unexpected input: " ++ show extraTokens) False
+    (_, extraTokens) -> error ("Unexpected input: " ++ show extraTokens) False
 
 
 -- | A parser function takes a list of tokens and returns a pair:
@@ -40,19 +40,23 @@ expr tokens =
 
     -- factor + expr
     (left, CrossToken : tokens') -> 
-      let (right, tokens'') = expr tokens' in (BinOp left PlusOp right, tokens'')
+      let (right, tokens'') = expr tokens' in 
+        (BinOp left PlusOp right, tokens'')
 
     -- factor - expr
     (left, DashToken : tokens') -> 
-      let (right, tokens'') = expr tokens' in (BinOp left MinusOp right, tokens'')
+      let (right, tokens'') = expr tokens' in 
+        (BinOp left MinusOp right, tokens'')
 
     -- factor * expr
     (left, StarToken : tokens') -> 
-      let (right, tokens'') = expr tokens' in (BinOp left TimesOp right, tokens'')
+      let (right, tokens'') = expr tokens' in 
+        (BinOp left TimesOp right, tokens'')
 
     -- factor / expr
     (left, SlashToken : tokens') -> 
-      let (right, tokens'') = expr tokens' in (BinOp left DivOp right, tokens'')
+      let (right, tokens'') = expr tokens' in 
+        (BinOp left DivOp right, tokens'')
 
     -- factor
     result -> result
@@ -66,7 +70,7 @@ factor ( (NumberToken n) : tokens') = (Num n, tokens')
 factor (LParenToken : tokens') = 
   case expr tokens' of
     (e, RParenToken : tokens'') -> (e, tokens'')
-    (_, tokens'') -> error "Expected ')'"
+    _ -> error "Expected ')'"
 
 -- Everything else fails
-factor tokens = error "Expected number or parenthetical expression"
+factor _ = error "Expected number or '('"
