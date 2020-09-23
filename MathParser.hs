@@ -19,39 +19,50 @@ module MathParser where
 import MathTokenizer
 
 parse :: String -> Bool
-parse s = expr (tokenize s)
+parse s = 
+  case expr (tokenize s) of
+    (True, []) -> True            -- a successful parse that consumes all the tokens succeeds
+    (True, extraTokens) -> False  -- a successful parse with leftover tokens fails
+    (False, _) -> False           -- an unsuccessful parse fails
 
-type ParserFunction = [Token] -> Bool
+
+-- | A parser function takes a list of tokens and returns a pair:
+--   the result of parsing and the unconsumed tokens
+type ParserFunction = [Token] -> (Bool, [Token])
+
 
 expr :: ParserFunction
-expr tokens = (factor tokens && isCrossToken tokens && expr tokens)
-           || (factor tokens && isDashToken tokens && expr tokens)
-           || (factor tokens && isStarToken tokens && expr tokens)          
-           || (factor tokens && isSlashToken tokens && expr tokens)
-           || (factor tokens)
+expr tokens = 
+  case factor tokens of
 
-  where isCrossToken (CrossToken : _) = True
-        isCrossToken _ = False
+    -- factor + expr
+    (True, CrossToken : tokens') -> expr tokens'
 
-        isDashToken (DashToken : _) = True
-        isDashToken _ = False
+    -- factor - expr
+    (True, DashToken : tokens') -> expr tokens'
 
-        isStarToken (StarToken : _) = True
-        isStarToken _ = False
+    -- factor * expr
+    (True, StarToken : tokens') -> expr tokens'
 
-        isSlashToken (SlashToken : _) = True
-        isSlashToken _ = False
+    -- factor / expr
+    (True, SlashToken : tokens') -> expr tokens'
+
+    -- factor
+    (True, tokens') -> (True, tokens')
+
+    -- If we can't parse a factor, then parsing an expr fails
+    (False, tokens') -> (False, tokens')  
 
 
 factor :: ParserFunction
-factor tokens = (isNumberToken tokens)
-             || (isLParenToken tokens && expr tokens && isRParenToken tokens)
+-- n 
+factor ( (NumberToken _) : tokens') = (True, tokens')
 
-  where isNumberToken ( (NumberToken _) : _) = True
-        isNumberToken _ = False
+-- (expr)
+factor (LParenToken : tokens') = 
+  case expr tokens' of
+    (True, RParenToken : tokens'') -> (True, tokens'')
+    (_, tokens'') -> (False, tokens'')
 
-        isLParenToken (LParenToken : _) = True
-        isLParenToken _ = False
-
-        isRParenToken (RParenToken : _) = True
-        isRParenToken _ = False
+-- Everything else fails
+factor tokens = (False, tokens)
