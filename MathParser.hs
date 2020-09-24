@@ -64,7 +64,7 @@ expr tokens =
 
 factor :: ParserFunction
 -- n 
-factor ( (NumberToken n) : tokens') = (Num n, tokens')
+factor ( NumberToken n : tokens') = (Num n, tokens')
 
 -- (expr)
 factor (LParenToken : tokens') = 
